@@ -30,3 +30,20 @@ for i, chunk in enumerate(chunks[:12]):
     print(f"--- Chunk {i+1} ---")
     print(chunk.page_content)
     print("\n")
+
+import getpass
+import os
+
+if not os.environ.get("OPENAI_API_KEY"):
+  os.environ["OPENAI_API_KEY"] = getpass.getpass("Enter API key for OpenAI: ")
+
+from langchain.chat_models import init_chat_model
+
+llm = init_chat_model("gpt-4o-mini", model_provider="openai")
+
+from langchain_huggingface import HuggingFaceEmbeddings
+
+embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
+from langchain_community.vectorstores import FAISS
+
+vector_store = FAISS(embedding_function=embeddings)
