@@ -1,79 +1,97 @@
-import numpy as np
-import faiss
-from sentence_transformers import SentenceTransformer
-from transformers import AutoTokenizer, AutoModelForCausalLM
+import streamlit as st
+import os
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.vectorstores import FAISS
+from langchain.chat_models import init_chat_model
+from langchain.chains import RetrievalQA
+import openai
 
-# 1. Define your corpus of curated music theory texts.
-# In a real scenario, you’d load a more extensive, curated collection.
-documents = [
-    "Music theory is the study of how music works. It includes harmony, melody, rhythm, and structure.",
-    "The circle of fifths is a visual representation of the relationships among the 12 tones of the chromatic scale.",
-    "Chord progressions are a series of musical chords played in sequence, forming the harmonic backbone of a song.",
-    "Scales form the basis of melody and harmony. Major and minor scales are the most common, but modes and exotic scales add color.",
-]
+@st.cache_data
+def load_vector_store():
+    # This assumes you have run your precomputation script and saved the store locally.
+    embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
+    vector_store = FAISS.load_local("faiss_store", embedding_model, allow_dangerous_deserialization=True)
+    return vector_store
 
-# 2. Load an embedding model (using SentenceTransformer)
-embedder = SentenceTransformer('all-mpnet-base-v2')
+vector_store = load_vector_store()
 
-# Embed your documents
-doc_embeddings = embedder.encode(documents, convert_to_tensor=False)
-doc_embeddings = np.array(doc_embeddings).astype('float32')
+llm = init_chat_model("gpt-4o-mini", model_provider="openai")
+retriever = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": 3})
+qa_chain = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever)
 
-# 3. Build a FAISS index using L2 (Euclidean) distance.
-embedding_dimension = doc_embeddings.shape[1]
-index = faiss.IndexFlatL2(embedding_dimension)
-index.add(doc_embeddings)
+# -------------------------------
+# Sidebar: API Key Input
+# -------------------------------
+with st.sidebar:
+    st.header("API Settings")
+    api_key = st.text_input("Enter your OpenAI API key:", type="password")
+    if api_key:
+        os.environ["OPENAI_API_KEY"] = api_key
 
-def retrieve_documents(query, top_k=3):
-    """Retrieve the top_k documents most similar to the query."""
-    query_embedding = embedder.encode([query], convert_to_tensor=False)
-    query_embedding = np.array(query_embedding).astype('float32')
-    distances, indices = index.search(query_embedding, top_k)
-    retrieved_docs = [documents[i] for i in indices[0]]
-    return retrieved_docs
+# -------------------------------
+# Main Page Header
+# -------------------------------
+# Title with two sun emojis (you can adjust emoji style if needed)
+st.title("☀️☀️**Spanish Constitution Q&A**")
+# Subtitle with a clickable link to the official document
+st.markdown("**Ask questions about the [Spanish Constitution official document](https://www.tribunalconstitucional.es/es/tribunal/normativa/normativa/constitucioningles.pdf)**")
 
-# 4. Set up the generative model.
-# For demo purposes, we use a smaller GPT-Neo model; for production, consider fine-tuning a larger or domain-adapted model.
-tokenizer = AutoTokenizer.from_pretrained("EleutherAI/gpt-neo-125M")
-generator_model = AutoModelForCausalLM.from_pretrained("EleutherAI/gpt-neo-125M")
+# -------------------------------
+# Question Input Section
+# -------------------------------
+user_query = st.text_input("Your question:")
 
-def generate_response(query, retrieved_docs, max_new_tokens=150):
-    """
-    Combine the retrieved context with the user query to form a prompt,
-    and generate an answer using the language model.
-    """
-    # Construct the prompt with context and the query.
-    context = "\n".join(retrieved_docs)
-    prompt = (
-        "You are a music theory assistant. Answer the question based on the context provided.\n\n"
-        f"Context:\n{context}\n\n"
-        f"Question: {query}\n\n"
-        "Answer:"
-    )
-    inputs = tokenizer(prompt, return_tensors="pt")
-    outputs = generator_model.generate(
-        **inputs,
-        max_new_tokens=max_new_tokens,
-        do_sample=True,
-        temperature=0.7,
-        top_p=0.9,
-        pad_token_id=tokenizer.eos_token_id
-    )
-    generated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    # Extract the answer part by removing the prompt from the generated text.
-    answer = generated_text[len(prompt):].strip()
-    return answer
+# Initialize session state for history if it doesn't exist
+if "history" not in st.session_state:
+    st.session_state.history = []
 
-def chat(query):
-    retrieved_docs = retrieve_documents(query)
-    answer = generate_response(query, retrieved_docs)
-    return answer
+if st.button("Get Answer") and user_query:
+    if not api_key:
+        st.markdown("**Missing API key**")
+    else:
+        try:
+            # Attempt to get the answer from the RetrievalQA chain
+            answer = qa_chain.invoke(user_query)
+            # Also retrieve the context chunks if needed
+            retrieved_chunks = retriever.get_relevant_documents(user_query)
+        except openai.AuthenticationError:
+            # Catch the invalid API key error and show an error message
+            st.error("Invalid API key")
+        except Exception as e:
+            # Optionally catch other exceptions and display a generic error
+            st.error(f"An error occurred: {str(e)}")
+        else:
+            # If no error, append the result to history and display the answer
+            st.session_state.history.append({
+                "query": user_query,
+                "answer": answer,
+                "retrieved": retrieved_chunks
+            })
+            st.markdown("### Answer:")
+            st.write(answer['result'])
 
-if __name__ == "__main__":
-    print("Music Theory Chatbot (type 'quit' to exit)")
-    while True:
-        user_input = input("\nEnter your music theory question: ")
-        if user_input.lower() in ['quit', 'exit']:
-            break
-        response = chat(user_input)
-        print("\nResponse:", response)
+# -------------------------------
+# Side-by-Side: Example Questions and History
+# -------------------------------
+col1, col2 = st.columns(2)
+
+with col1:
+    st.subheader("Example Questions")
+    sample_questions = [
+        "What does Article 10 say about freedom?",
+        "How is power distributed according to Article 5?",
+        "What rights are mentioned in Article 1?",
+    ]
+    for question in sample_questions:
+        st.write(f"• {question}")
+
+with col2:
+    st.subheader("History of Questions")
+    if st.session_state.history:
+        # Display history in chronological order (1 = oldest)
+        for idx, entry in enumerate(st.session_state.history, start=1):
+            st.markdown(f"**{idx}. Query:** {entry['query']}")
+            st.markdown(f"**Answer:** {entry['answer']}")
+            st.markdown("---")
+    else:
+        st.write("No history yet.")
