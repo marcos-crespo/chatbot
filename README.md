@@ -1,8 +1,8 @@
 # Spanish Constitution Q&A ChatBot
 
-[![Open in Streamlit](https://chatbot-4g5ea76rwyjj9e9biaa49y.streamlit.app/)]
+[Open in Streamlit](https://chatbot-4g5ea76rwyjj9e9biaa49y.streamlit.app/)
 
-[![Medium Article on the How To](link)]
+[Medium Article on the How To](link)
 
 ## Overview
 
