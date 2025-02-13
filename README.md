@@ -1,7 +1,8 @@
 # Spanish Constitution Q&A ChatBot
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/yourusername/your-repo-name/main/app.py)
-[Article on the How To](link)
+[![Open in Streamlit](https://chatbot-4g5ea76rwyjj9e9biaa49y.streamlit.app/)]
+
+[![Medium Article on the How To](link)]
 
 ## Overview
 
@@ -20,7 +21,7 @@ The main goal of this app was to learn how to build a simple RAG and to add thos
 
 ## Demo
 
-Try the live demo on [Streamlit Cloud](https://share.streamlit.io/yourusername/your-repo-name/main/app.py).
+Try the live demo on [Streamlit Cloud](https://chatbot-4g5ea76rwyjj9e9biaa49y.streamlit.app/).
 
 ## Installation
 
