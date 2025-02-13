@@ -25,7 +25,7 @@ with st.sidebar:
     if api_key:
         os.environ["OPENAI_API_KEY"] = api_key
     "[Get an OpenAI API key](https://platform.openai.com/account/api-keys)"
-    "[View the source code](https://github.com/streamlit/llm-examples/blob/main/Chatbot.py)"
+    "[View the source code](https://github.com/marcos-crespo/chatbot/tree/main)"
 
 # -------------------------------
 # Main Page Header
