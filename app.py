@@ -14,10 +14,7 @@ def load_vector_store():
     return vector_store
 
 vector_store = load_vector_store()
-
-llm = init_chat_model("gpt-4o-mini", model_provider="openai")
 retriever = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": 3})
-qa_chain = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever)
 
 # -------------------------------
 # Sidebar: API Key Input
@@ -27,6 +24,8 @@ with st.sidebar:
     api_key = st.text_input("Enter your OpenAI API key:", type="password")
     if api_key:
         os.environ["OPENAI_API_KEY"] = api_key
+    "[Get an OpenAI API key](https://platform.openai.com/account/api-keys)"
+    "[View the source code](https://github.com/streamlit/llm-examples/blob/main/Chatbot.py)"
 
 # -------------------------------
 # Main Page Header
@@ -50,6 +49,8 @@ if st.button("Get Answer") and user_query:
         st.markdown("**Missing API key**")
     else:
         try:
+            llm = init_chat_model("gpt-4o-mini", model_provider="openai")
+            qa_chain = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever)
             # Attempt to get the answer from the RetrievalQA chain
             answer = qa_chain.invoke(user_query)
             # Also retrieve the context chunks if needed
