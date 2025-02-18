@@ -2,7 +2,7 @@
 
 [Open in Streamlit](https://chatbot-4g5ea76rwyjj9e9biaa49y.streamlit.app/)
 
-[Medium Article on the How To](https://medium.com/@marcoscrespo-ai/building-your-first-rag-c0a83ae9a6db)
+[Medium Article on the How To Build your First RAG](https://medium.com/@marcoscrespo-ai/building-your-first-rag-c0a83ae9a6db)
 
 ## Overview
 
